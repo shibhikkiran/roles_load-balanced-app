@@ -1,0 +1,30 @@
+---
+# tasks file for httpd
+- name: 4. install httpd server and it's components
+  yum:
+    name: "{{ item }}"
+    state: present
+    update_cache: yes
+  with_items:
+    - httpd
+    - mod_wsgi
+    - python2-pip
+    - python-virtualenv
+    - MySQL-python
+
+- name: 5. start httpd service
+  service:
+    name: httpd
+    state: started
+    enabled: yes
+
+- name: 6. enable wsgi module on http configuration
+  apache2_module:
+    name: wsgi
+    state: present
+  notify: restart httpd
+
+- file: path=/etc/httpd/sites-available state=directory
+
+- file: path=/etc/httpd/sites-enabled state=directory
+

@@ -1,0 +1,20 @@
+---
+# tasks file for common
+- name: 1. check if epel repo is configured.
+  stat: path='/etc/yum.repos.d/epel.repo'
+  register: epel_repo_file_result
+
+- name: 2. enable epel repository.
+  yum:
+    name: "https://dl.fedoraproject.org/pub/epel/epel-release-latest-{{ ansible_distribution_major_version }}.noarch.rpm"
+    state: present
+    update_cache: yes
+  register: result
+  when: not epel_repo_file_result.stat.exists
+
+- name: 3. import epel repository GPG key.
+  rpm_key:
+    key: "https://dl.fedoraproject.org/pub/epel/RPM-GPG-KEY-EPEL-{{ ansible_distribution_major_version }}"
+    state: present
+  when: not epel_repo_file_result.stat.exists
+

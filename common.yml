@@ -1,0 +1,6 @@
+---
+- hosts: lbstack 
+  become: true
+
+  roles:
+    - common 

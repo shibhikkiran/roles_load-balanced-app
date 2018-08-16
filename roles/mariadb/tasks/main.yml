@@ -1,0 +1,44 @@
+---
+# tasks file for mariadb
+- name: 1. install mariadb server
+  yum:
+    name: "{{ item }}"
+    state: present
+    update_cache: yes
+  with_items:
+    - mariadb-server
+    - MySQL-python
+
+- name: 3. remove bind ipaddress for local connection
+  lineinfile:
+    dest: /etc/my.cnf
+    regexp: '^bind-address=(?!0.0.0.0)'
+    state: absent
+  register: remove_status
+
+- name: 4. add bind ipaddress for remote connection
+  lineinfile:
+    dest: /etc/my.cnf
+    line: "bind-address=0.0.0.0"
+    insertafter: '^#?socket'
+    state: present
+
+- name: 5. create demo database
+  mysql_db:
+    name: demo
+    state: present
+
+- name: 6. create demo database user and it's priviledge
+  mysql_user:
+    name: demo
+    password: demo
+    priv: demo.*:ALL
+    host: '%'
+    state: present
+
+- name: 7. start mariadb service
+  service:
+    name: mariadb
+    state: started
+    enabled: yes
+

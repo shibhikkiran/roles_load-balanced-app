@@ -1,0 +1,111 @@
+---
+- hosts: loadbalancer
+  become: true
+
+  tasks:
+    - set_fact: 
+        real_ansible_host: "{{ ansible_host }}"
+
+    - name: verify nginx status
+      command: systemctl status nginx
+      changed_when: false 
+
+    - name: verify nginx listening on port 80
+      local_action:
+         wait_for host={{ real_ansible_host }} 
+         port=80 delay=2 timeout=3 state=started msg='nginx failed to listen on port 80'
+     
+- hosts: webserver
+  become: true
+  
+  tasks: 
+    - set_fact:
+        real_ansible_host: "{{ ansible_host }}"
+
+    - name: verify httpd status
+      command: systemctl status httpd
+      changed_when: false
+
+    - name: verify httpd listening on port 80
+      local_action:
+         wait_for host={{ real_ansible_host }}
+         port=80 delay=2 timeout=3 state=started msg='httpd failed to listen on port 80'
+
+
+- hosts: database
+  become: true
+ 
+  tasks:
+    - set_fact:
+        real_ansible_host: "{{ ansible_host }}"
+
+    - name: verify mariadb status
+      command: systemctl status mariadb
+      changed_when: false
+
+    - name: verify mariadb listening on port 3306 
+      local_action:
+         wait_for host={{ real_ansible_host }}
+         port=3306 delay=2 timeout=3 state=started msg='mariadb failed to listen on port 3306'
+
+- hosts: master 
+  become: true
+  
+  tasks:
+    - name: verify end-to-end response
+      uri:
+        url: http://{{item}}
+        return_content: yes
+      with_items: "{{ groups.loadbalancer }}"
+      register: lbpage
+
+    - name: fail if correct content is not presented in url
+      fail:
+        msg: "failed to receive correct url response"
+      when: "'Hello, Welcome from' not in item.content"
+      with_items: "{{ lbpage.results }}"
+
+    - name: verify end-to-end db response
+      uri:
+        url: http://{{item}}/db
+        return_content: yes
+      with_items: "{{ groups.loadbalancer }}"
+      register: dbfrontend
+
+    - name: fail if correct content is not presented in url
+      fail:
+        msg: "failed to receive correct url response"
+      when: "'Database Connected from' not in item.content"
+      with_items: "{{ dbfrontend.results }}"
+
+
+- hosts: loadbalancer
+  become: true
+ 
+  tasks:
+    - name: verify backend response
+      uri:
+        url: http://{{item}}
+        return_content: yes
+      with_items: "{{ groups.webserver }}"
+      register: webpage
+  
+    - name: fail if correct content is not presented in url
+      fail:
+        msg: "failed to receive correct url response"
+      when: "'Hello, Welcome from {{item.item}}' not in item.content"
+      with_items: "{{ webpage.results }}"
+
+    - name: verify backend db response
+      uri:
+        url: http://{{item}}/db
+        return_content: yes
+      with_items: "{{ groups.webserver }}"
+      register: dbbackend
+
+    - name: fail if correct content is not presented in url
+      fail:
+        msg: "failed to receive correct url response"
+      when: "'Database Connected from' not in item.content"
+      with_items: "{{ dbbackend.results }}"
+

@@ -1,0 +1,15 @@
+---
+- hosts: master
+  become: true
+
+  tasks: 
+    - name: check url
+      uri:
+        url: http://www.example.com
+        return_content: yes
+      register: webpage
+
+    - name: Fail if AWESOME is not in the page content
+      fail:
+        msg: "failed to receive url response"
+      when: "'AWESOME' not in webpage.content"

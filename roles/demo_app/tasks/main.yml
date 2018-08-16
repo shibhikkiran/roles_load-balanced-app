@@ -1,0 +1,36 @@
+---
+# tasks file for demo_app
+- name: 7. copy demo app
+  copy:
+    src: demo/app/
+    dest: /var/www/demo
+    mode: 0755
+  notify: restart httpd
+
+- name: 8. copy demo app virtual host configuration
+  copy:
+    src: demo/demo.conf
+    dest: /etc/httpd/sites-available/demo.conf
+    mode: 0644
+  notify: restart httpd
+
+- name: 9. setup python virtual environment for demo app
+  pip:
+    requirements: /var/www/demo/requirements.txt
+    virtualenv: /var/www/demo/.venv
+  notify: restart httpd
+
+- name: 10. include demo app to httpd configuration
+  lineinfile:
+     path: /etc/httpd/conf/httpd.conf
+     regexp: '^IncludeOptional'
+     line: 'IncludeOptional sites-enabled/*.conf'
+  notify: restart httpd
+
+- name: 11. enable demo app
+  file:
+    src: /etc/httpd/sites-available/demo.conf
+    dest: /etc/httpd/sites-enabled/demo.conf
+    state: link
+  notify: restart httpd
+

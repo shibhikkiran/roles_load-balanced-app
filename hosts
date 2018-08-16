@@ -1,0 +1,18 @@
+[master]
+control   ansible_connection=local  ansible_user=ansible
+
+[loadbalancer]
+lb01      ansible_connection=ssh    ansible_user=ansible
+
+[webserver]
+web01     ansible_connection=ssh    ansible_user=ansible
+web02     ansible_connection=ssh    ansible_user=ansible
+
+[database]
+db01      ansible_connection=ssh    ansible_user=ansible
+
+[lbstack:children]
+loadbalancer
+webserver
+database
+

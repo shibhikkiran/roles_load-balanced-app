@@ -1,0 +1,15 @@
+---
+- hosts: master
+  become: true
+
+  tasks:
+    - name: install rsync
+      yum:
+        name: rsync
+        state: present
+        update_cache: yes
+
+    - name: sync playbooks to gitnode
+      synchronize:
+        src: /home/ansible/playbooks
+        dest: rsync://gitnode/home/ansible/git_repos/playbooks
